@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Infrastructure Complaint Tracker</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fa-solid fa-building-shield logo-icon"></i>
+                <div class="logo-text">
+                    <span class="brand-title">Campus Fix</span>
+                    <span class="brand-subtitle">Infrastructure Complaint Portal</span>
+                </div>
+            </div>
+
+            <nav class="nav-links" id="nav-menu">
+                <button class="nav-btn active" id="btn-nav-dashboard" onclick="showSection('dashboard-section')">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </button>
+                <button class="nav-btn" id="btn-nav-complaints" onclick="showSection('complaints-section')">
+                    <i class="fa-solid fa-list-check"></i> Complaints
+                </button>
+                <button class="nav-btn" id="btn-nav-new" onclick="openNewComplaintModal()">
+                    <i class="fa-solid fa-plus-circle"></i> File Complaint
+                </button>
+                <a href="/swagger-ui.html" target="_blank" class="nav-btn api-btn">
+                    <i class="fa-solid fa-code"></i> Swagger API
+                </a>
+            </nav>
+
+            <div class="user-profile-menu">
+                <div class="user-info" id="user-info-display">
+                    <div class="avatar" id="user-avatar">A</div>
+                    <div class="user-meta">
+                        <span class="user-name" id="user-name">Admin User</span>
+                        <span class="user-role badge-admin" id="user-role">ADMIN</span>
+                    </div>
+                </div>
+                <button class="btn-icon" id="btn-logout" title="Logout" onclick="handleLogout()">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login Modal (Overlay if unauthenticated) -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-content login-card">
+            <div class="modal-header">
+                <i class="fa-solid fa-shield-halved auth-icon"></i>
+                <h2>Sign In to Portal</h2>
+                <p>Select a quick demo role or enter your credentials</p>
+            </div>
+            
+            <div class="quick-login-pills">
+                <span class="quick-pill-label">Quick Sign-in:</span>
+                <button class="quick-pill" onclick="quickLogin('admin@campus.edu', 'admin123')">
+                    <i class="fa-solid fa-user-shield"></i> Admin
+                </button>
+                <button class="quick-pill" onclick="quickLogin('john.doe@student.campus.edu', 'student123')">
+                    <i class="fa-solid fa-graduation-cap"></i> Student
+                </button>
+                <button class="quick-pill" onclick="quickLogin('sarah.smith@faculty.campus.edu', 'faculty123')">
+                    <i class="fa-solid fa-chalkboard-user"></i> Faculty
+                </button>
+            </div>
+
+            <form id="login-form" onsubmit="handleLoginSubmit(event)">
+                <div class="form-group">
+                    <label for="login-email"><i class="fa-regular fa-envelope"></i> Email Address</label>
+                    <input type="email" id="login-email" required placeholder="admin@campus.edu">
+                </div>
+                <div class="form-group">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-right-to-bracket"></i> Authenticate
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+
+        <!-- DASHBOARD SECTION -->
+        <section id="dashboard-section" class="page-section active">
+            <div class="section-header">
+                <div>
+                    <h1 class="page-title">Campus Infrastructure Overview</h1>
+                    <p class="page-desc">Real-time telemetry and lifecycle tracking for reported maintenance issues.</p>
+                </div>
+                <button class="btn btn-secondary" onclick="loadDashboardData()">
+                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Stats
+                </button>
+            </div>
+
+            <!-- Stats Metric Cards -->
+            <div class="stats-grid">
+                <div class="stat-card card-total">
+                    <div class="stat-icon"><i class="fa-solid fa-folder-open"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-number" id="stat-total">0</span>
+                        <span class="stat-label">Total Complaints</span>
+                    </div>
+                </div>
+
+                <div class="stat-card card-open">
+                    <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-number" id="stat-open">0</span>
+                        <span class="stat-label">Pending / Open</span>
+                    </div>
+                </div>
+
+                <div class="stat-card card-progress">
+                    <div class="stat-icon"><i class="fa-solid fa-screws-tilting"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-number" id="stat-progress">0</span>
+                        <span class="stat-label">In Progress</span>
+                    </div>
+                </div>
+
+                <div class="stat-card card-resolved">
+                    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-number" id="stat-resolved">0</span>
+                        <span class="stat-label">Resolved / Closed</span>
+                    </div>
+                </div>
+
+                <div class="stat-card card-critical">
+                    <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-number" id="stat-critical">0</span>
+                        <span class="stat-label">Critical Issues</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Visual Cards -->
+            <div class="dashboard-analytics-grid">
+                <div class="analytics-card">
+                    <div class="analytics-header">
+                        <h3><i class="fa-solid fa-layer-group"></i> Complaints by Category</h3>
+                    </div>
+                    <div class="bar-chart-container" id="category-chart">
+                        <!-- Dynamic Category Bars -->
+                    </div>
+                </div>
+
+                <div class="analytics-card">
+                    <div class="analytics-header">
+                        <h3><i class="fa-solid fa-building"></i> Complaints by Building Location</h3>
+                    </div>
+                    <div class="bar-chart-container" id="building-chart">
+                        <!-- Dynamic Building Bars -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPLAINTS LIST SECTION -->
+        <section id="complaints-section" class="page-section">
+            <div class="section-header">
+                <div>
+                    <h1 class="page-title">Complaint Directory</h1>
+                    <p class="page-desc">Filter, search, and manage all campus maintenance requests.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="exportData('csv')" id="btn-export-csv">
+                        <i class="fa-solid fa-file-csv"></i> Export CSV
+                    </button>
+                    <button class="btn btn-outline" onclick="exportData('excel')" id="btn-export-excel">
+                        <i class="fa-solid fa-file-excel"></i> Export Excel
+                    </button>
+                    <button class="btn btn-primary" onclick="openNewComplaintModal()">
+                        <i class="fa-solid fa-plus"></i> New Complaint
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="filter-card">
+                <div class="filter-grid">
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="filter-keyword" placeholder="Search title or description..." oninput="debounceSearch()">
+                    </div>
+
+                    <select id="filter-category" onchange="loadComplaintsData()">
+                        <option value="">All Categories</option>
+                        <option value="ELECTRICAL">Electrical</option>
+                        <option value="FURNITURE">Furniture</option>
+                        <option value="WATER_LEAKAGE">Water Leakage</option>
+                        <option value="PROJECTOR">Projector</option>
+                        <option value="COMPUTER">Computer</option>
+                        <option value="INTERNET">Internet</option>
+                        <option value="CLEANING">Cleaning</option>
+                        <option value="LABORATORY">Laboratory</option>
+                        <option value="AIR_CONDITIONER">Air Conditioner</option>
+                        <option value="FAN">Fan</option>
+                        <option value="LIGHTING">Lighting</option>
+                        <option value="OTHERS">Others</option>
+                    </select>
+
+                    <select id="filter-status" onchange="loadComplaintsData()">
+                        <option value="">All Statuses</option>
+                        <option value="OPEN">Open</option>
+                        <option value="ASSIGNED">Assigned</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                        <option value="CLOSED">Closed</option>
+                    </select>
+
+                    <select id="filter-priority" onchange="loadComplaintsData()">
+                        <option value="">All Priorities</option>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical</option>
+                    </select>
+
+                    <button class="btn btn-secondary" onclick="resetFilters()">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Complaints Data Table -->
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Issue Title</th>
+                                <th>Category</th>
+                                <th>Location</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Reported By</th>
+                                <th>Assigned To</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complaints-table-body">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div class="pagination-footer">
+                    <span id="pagination-info" class="pagination-info">Showing 0 of 0 complaints</span>
+                    <div class="pagination-controls">
+                        <button class="btn-pagination" id="btn-prev" onclick="changePage(-1)">
+                            <i class="fa-solid fa-chevron-left"></i> Previous
+                        </button>
+                        <span id="current-page-badge" class="page-number-badge">Page 1</span>
+                        <button class="btn-pagination" id="btn-next" onclick="changePage(1)">
+                            Next <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- NEW COMPLAINT MODAL -->
+    <div id="new-complaint-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-paper-plane"></i> Report Infrastructure Issue</h2>
+                <button class="btn-close" onclick="closeModal('new-complaint-modal')">&times;</button>
+            </div>
+            <form id="new-complaint-form" onsubmit="handleCreateComplaint(event)">
+                <div class="form-group">
+                    <label for="comp-title">Issue Title *</label>
+                    <input type="text" id="comp-title" required placeholder="e.g. Projector Flickering in Room 101">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="comp-category">Category *</label>
+                        <select id="comp-category" required>
+                            <option value="ELECTRICAL">Electrical</option>
+                            <option value="FURNITURE">Furniture</option>
+                            <option value="WATER_LEAKAGE">Water Leakage</option>
+                            <option value="PROJECTOR">Projector</option>
+                            <option value="COMPUTER">Computer</option>
+                            <option value="INTERNET">Internet</option>
+                            <option value="CLEANING">Cleaning</option>
+                            <option value="LABORATORY">Laboratory</option>
+                            <option value="AIR_CONDITIONER">Air Conditioner</option>
+                            <option value="FAN">Fan</option>
+                            <option value="LIGHTING">Lighting</option>
+                            <option value="OTHERS">Others</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="comp-priority">Priority *</label>
+                        <select id="comp-priority" required>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM" selected>Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="comp-building">Building / Block *</label>
+                        <input type="text" id="comp-building" required placeholder="e.g. Academic Block A">
+                    </div>
+                    <div class="form-group">
+                        <label for="comp-room">Room / Lab Number</label>
+                        <input type="text" id="comp-room" placeholder="e.g. Room 302">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="comp-desc">Detailed Description *</label>
+                    <textarea id="comp-desc" rows="4" required placeholder="Provide specific details about the infrastructure fault..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('new-complaint-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Submit Complaint</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- VIEW/MANAGE COMPLAINT MODAL -->
+    <div id="view-complaint-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-circle-info"></i> Complaint Details #<span id="detail-id"></span></h2>
+                <button class="btn-close" onclick="closeModal('view-complaint-modal')">&times;</button>
+            </div>
+            
+            <div class="detail-body">
+                <div class="detail-hero">
+                    <h3 id="detail-title">Title Here</h3>
+                    <div class="detail-badges">
+                        <span id="detail-status-badge" class="badge">OPEN</span>
+                        <span id="detail-priority-badge" class="badge">HIGH</span>
+                        <span id="detail-category-badge" class="badge badge-outline">ELECTRICAL</span>
+                    </div>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="label"><i class="fa-solid fa-location-dot"></i> Location</span>
+                        <span class="value" id="detail-location">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label"><i class="fa-solid fa-user"></i> Reported By</span>
+                        <span class="value" id="detail-reporter">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label"><i class="fa-solid fa-user-gear"></i> Assigned Technician</span>
+                        <span class="value" id="detail-assigned">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label"><i class="fa-solid fa-calendar"></i> Reported Date</span>
+                        <span class="value" id="detail-date">-</span>
+                    </div>
+                </div>
+
+                <div class="detail-block">
+                    <h4>Description</h4>
+                    <p id="detail-desc" class="desc-text"></p>
+                </div>
+
+                <div class="detail-block" id="remarks-block">
+                    <h4>Admin / Technician Remarks</h4>
+                    <p id="detail-remarks" class="remarks-text">No remarks added yet.</p>
+                </div>
+
+                <!-- Admin Actions Section (only visible for ADMIN) -->
+                <div class="admin-action-box" id="admin-action-box">
+                    <h4><i class="fa-solid fa-shield-halved"></i> Admin Management Actions</h4>
+                    
+                    <div class="form-row margin-top">
+                        <div class="form-group flex-1">
+                            <label for="admin-status-select">Update Status</label>
+                            <select id="admin-status-select">
+                                <option value="OPEN">OPEN</option>
+                                <option value="ASSIGNED">ASSIGNED</option>
+                                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                                <option value="RESOLVED">RESOLVED</option>
+                                <option value="CLOSED">CLOSED</option>
+                            </select>
+                        </div>
+                        <div class="form-group flex-2">
+                            <label for="admin-remarks-input">Add Remarks / Work Log</label>
+                            <input type="text" id="admin-remarks-input" placeholder="e.g. Technician dispatched, cable replaced">
+                        </div>
+                        <button class="btn btn-primary self-end" onclick="handleAdminStatusUpdate()">
+                            <i class="fa-solid fa-save"></i> Save Status
+                        </button>
+                    </div>
+
+                    <div class="form-row margin-top-sm">
+                        <div class="form-group flex-2">
+                            <label for="admin-assign-input">Assign Department / Person</label>
+                            <input type="text" id="admin-assign-input" placeholder="e.g. Electrical Dept / John Smith">
+                        </div>
+                        <button class="btn btn-secondary self-end" onclick="handleAdminAssign()">
+                            <i class="fa-solid fa-user-plus"></i> Assign Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger align-left" id="btn-delete-complaint" onclick="handleDeleteComplaint()">
+                    <i class="fa-solid fa-trash"></i> Delete Complaint
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('view-complaint-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
